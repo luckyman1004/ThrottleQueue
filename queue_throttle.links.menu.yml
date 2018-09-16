@@ -1,0 +1,5 @@
+queue_throttle.configure:
+  title: 'Queue Throttle'
+  description: 'Configure queues that should be throttled.'
+  parent: system.admin_config_system
+  route_name: queue_throttle.queue_settings

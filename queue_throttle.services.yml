@@ -1,0 +1,9 @@
+services:
+  logger.channel.queue_throttle:
+    class: Drupal\Core\Logger\LoggerChannel
+    factory: logger.factory:get
+    arguments: ['queue_throttle']
+  queue_throttle.cron:
+    class: Drupal\queue_throttle\QueueThrottleCron
+    arguments: ['@lock', '@queue', '@state', '@account_switcher', '@logger.channel.queue_throttle', '@plugin.manager.queue_worker', '@config.factory', '@datetime.time']
+    lazy: true

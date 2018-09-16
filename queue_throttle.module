@@ -1,0 +1,19 @@
+<?php
+
+/**
+ * @file
+ * Module file for the Queue Throttle module.
+ */
+
+/**
+ * Implements hook_queue_info_alter().
+ */
+function queue_throttle_queue_info_alter(&$queues) {
+  $config = \Drupal::config('queue_throttle.settings');
+  foreach (array_keys($queues) as $queueName) {
+    if ($config->get($queueName . '.enabled')) {
+      // Unset cron definition, to prevent queue processing on core's cron.
+      unset($queues[$queueName]['cron']);
+    }
+  }
+}
