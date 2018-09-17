@@ -7,3 +7,6 @@ services:
     class: Drupal\queue_throttle\QueueThrottleCron
     arguments: ['@lock', '@queue', '@state', '@account_switcher', '@logger.channel.queue_throttle', '@plugin.manager.queue_worker', '@config.factory', '@datetime.time']
     lazy: true
+  queue_throttle.service:
+    class: Drupal\queue_throttle\QueueThrottleService
+    arguments: ['@plugin.manager.queue_worker', '@queue', '@logger.channel.queue_throttle']

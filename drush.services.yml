@@ -1,6 +1,6 @@
 services:
   queue_throttle.commands:
     class: \Drupal\queue_throttle\Commands\QueueThrottleCommands
-    arguments: ['@queue_throttle.cron']
+    arguments: ['@queue_throttle.cron', '@queue_throttle.service']
     tags:
       - { name: drush.command }
