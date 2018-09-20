@@ -66,6 +66,7 @@ class QueueThrottleService implements QueueThrottleServiceInterface {
     $throttleRate = new ThrottleRate($items, $unit);
     $tokensPerSecond = $throttleRate->getTokensPerSecond();
 
+    $processedTotal = 0;
     $processed = 0;
     $current = time();
     $end = time() + $time_limit;
@@ -88,6 +89,7 @@ class QueueThrottleService implements QueueThrottleServiceInterface {
         $queue_worker->processItem($item->data);
         $queue->deleteItem($item);
         $processed++;
+        $processedTotal++;
       }
       catch (RequeueException $e) {
         // The worker requested the task to be immediately re-queued.
@@ -104,7 +106,7 @@ class QueueThrottleService implements QueueThrottleServiceInterface {
     $elapsed = microtime(TRUE) - $start;
 
     $this->logger->info(dt('Processed @count items from the @name queue in @elapsed sec.', [
-      '@count' => $processed,
+      '@count' => $processedTotal,
       '@name' => $queue_name,
       '@elapsed' => round($elapsed, 2),
     ]));
