@@ -55,40 +55,40 @@ class QueueThrottleService implements QueueThrottleServiceInterface {
   /**
    * {@inheritdoc}
    */
-  public function runQueue($queue_name, $time_limit, $items, $unit = 'second') {
+  public function runQueue($queue_name, $time_limit, $tokens, $unit = 'second', $detailed_logging = FALSE) {
 
-    $start = microtime(TRUE);
+    // Get initial time pointers.
+    $start = $current = $end = microtime(TRUE);
+    $end += $time_limit;
 
+    // Get queue & worker.
     $queue = $this->queueFactory->get($queue_name);
     $queue_worker = $this->queueManager->createInstance($queue_name);
 
-    // Get throttle rate.
-    $throttleRate = new ThrottleRate($items, $unit);
-    $tokensPerSecond = $throttleRate->getTokensPerSecond();
-
     $processedTotal = 0;
-    $processed = 0;
-    $current = time();
-    $end = time() + $time_limit;
+    $processedTokens = 0;
 
-    while ((!$time_limit || time() < $end) && ($item = $queue->claimItem())) {
+    while ((!$time_limit || microtime(TRUE) < $end) && ($item = $queue->claimItem())) {
 
       // Reset $current & $processed if unit differs.
-      if (time() !== $current) {
-        $current = time();
-        $processed = 0;
+      if (microtime(TRUE) >= $current + ThrottleRate::getUnitInSeconds($unit)) {
+        $current = microtime(TRUE);
+        $processedTokens = 0;
       }
+
       // Check if limit per unit is reached.
-      if ($processed >= $tokensPerSecond) {
+      if ($processedTokens >= $tokens) {
         $queue->releaseItem($item);
         continue;
       }
 
       try {
-        $this->logger->info(dt('Processing item @id from @name queue.', ['@name' => $queue_name, '@id' => $item->item_id]));
+        if ($detailed_logging) {
+          $this->logger->info(dt('Processing item @id from @name queue.', ['@name' => $queue_name, '@id' => $item->item_id]));
+        }
         $queue_worker->processItem($item->data);
         $queue->deleteItem($item);
-        $processed++;
+        $processedTokens++;
         $processedTotal++;
       }
       catch (RequeueException $e) {
@@ -99,7 +99,13 @@ class QueueThrottleService implements QueueThrottleServiceInterface {
         // If the worker indicates there is a problem with the whole queue,
         // release the item.
         $queue->releaseItem($item);
-        throw new \Exception($e->getMessage());
+        watchdog_exception('queue_throttle', $e);
+        break;
+      }
+      catch (\Exception $e) {
+        // In case of any other kind of exception, log it and leave the item
+        // in the queue to be processed again later.
+        watchdog_exception('queue_throttle', $e);
       }
     }
 

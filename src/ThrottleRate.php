@@ -74,6 +74,19 @@ class ThrottleRate {
   }
 
   /**
+   * Get 1 unit in seconds.
+   *
+   * @param string $unit
+   *   Time unit.
+   *
+   * @return double
+   *   Decimal.
+   */
+  public static function getUnitInSeconds($unit) {
+    return self::UNIT_MAP[$unit];
+  }
+
+  /**
    * Get tokens allowed per second.
    */
   public function getTokensPerSecond() {

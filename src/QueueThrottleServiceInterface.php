@@ -17,14 +17,16 @@ interface QueueThrottleServiceInterface {
    *   hook_cron_queue_info.
    * @param int $time_limit
    *   Time limit or 0 for no limit.
-   * @param int $items
-   *   Number of items to process per unit.
+   * @param int $tokens
+   *   Number of tokens to process per unit.
    * @param string $unit
    *   Time unit.
+   * @param bool $detailed_logging
+   *   Detailed logging of process.
    *
    * @throws \Exception
    *   If the queue is suspended.
    */
-  public function runQueue($queue_name, $time_limit, $items, $unit = 'second');
+  public function runQueue($queue_name, $time_limit, $tokens, $unit = 'second', $detailed_logging = FALSE);
 
 }

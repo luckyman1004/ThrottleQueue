@@ -79,6 +79,13 @@ class QueueThrottleCron implements CronInterface {
   protected $time;
 
   /**
+   * The queue throttle service.
+   *
+   * @var \Drupal\queue_throttle\QueueThrottleServiceInterface
+   */
+  protected $queueThrottleService;
+
+  /**
    * Constructs a cron object.
    *
    * @param \Drupal\Core\Lock\LockBackendInterface $lock
@@ -97,8 +104,10 @@ class QueueThrottleCron implements CronInterface {
    *   Config factory.
    * @param \Drupal\Component\Datetime\TimeInterface $time
    *   The time service.
+   * @param \Drupal\queue_throttle\QueueThrottleServiceInterface $queue_throttle_service
+   *   The cron service.
    */
-  public function __construct(LockBackendInterface $lock, QueueFactory $queue_factory, StateInterface $state, AccountSwitcherInterface $account_switcher, LoggerInterface $logger, QueueWorkerManagerInterface $queue_manager, ConfigFactoryInterface $config_factory, TimeInterface $time = NULL) {
+  public function __construct(LockBackendInterface $lock, QueueFactory $queue_factory, StateInterface $state, AccountSwitcherInterface $account_switcher, LoggerInterface $logger, QueueWorkerManagerInterface $queue_manager, ConfigFactoryInterface $config_factory, TimeInterface $time = NULL, QueueThrottleServiceInterface $queue_throttle_service) {
     $this->lock = $lock;
     $this->queueFactory = $queue_factory;
     $this->state = $state;
@@ -107,6 +116,7 @@ class QueueThrottleCron implements CronInterface {
     $this->queueManager = $queue_manager;
     $this->configFactory = $config_factory;
     $this->time = $time ?: \Drupal::service('datetime.time');
+    $this->queueThrottleService = $queue_throttle_service;
   }
 
   /**
@@ -173,57 +183,13 @@ class QueueThrottleCron implements CronInterface {
         // Make sure every queue exists. There is no harm in trying to recreate
         // an existing queue.
         $this->queueFactory->get($queue_name)->createQueue();
-
-        $queue_worker = $this->queueManager->createInstance($queue_name);
-
-        // Get throttle rate.
-        $throttleRate = new ThrottleRate($config->get($queue_name . '.items'), $config->get($queue_name . '.unit'));
-        $tokensPerSecond = $throttleRate->getTokensPerSecond();
-
-        $processed = 0;
-        $current = time();
-        $end = $current + ($config->get($queue_name . '.time') ?: 15);
-        $queue = $this->queueFactory->get($queue_name);
-        $lease_time = $config->get($queue_name . '.time') ?: NULL;
-
-        while (time() < $end && ($item = $queue->claimItem($lease_time))) {
-
-          // Reset $current & $processed if unit differs.
-          if (time() !== $current) {
-            $current = time();
-            $processed = 0;
-          }
-          // Check if limit per unit is reached.
-          if ($processed >= $tokensPerSecond) {
-            $queue->releaseItem($item);
-            continue;
-          }
-
-          try {
-            $queue_worker->processItem($item->data);
-            $queue->deleteItem($item);
-            $processed++;
-          }
-          catch (RequeueException $e) {
-            // The worker requested the task be immediately re-queued.
-            $queue->releaseItem($item);
-          }
-          catch (SuspendQueueException $e) {
-            // If the worker indicates there is a problem with the whole queue,
-            // release the item and skip to the next queue.
-            $queue->releaseItem($item);
-
-            watchdog_exception('queue_throttle_cron', $e);
-
-            // Skip to the next queue.
-            continue 2;
-          }
-          catch (\Exception $e) {
-            // In case of any other kind of exception, log it and leave the item
-            // in the queue to be processed again later.
-            watchdog_exception('queue_throttle_cron', $e);
-          }
-        }
+        // Throttle queue.
+        $this->queueThrottleService->runQueue(
+          $queue_name,
+          $config->get($queue_name . '.time'),
+          $config->get($queue_name . '.items'),
+          $config->get($queue_name . '.unit')
+        );
       }
     }
   }
