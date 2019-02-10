@@ -2,5 +2,4 @@ name: 'Queue Throttle'
 type: module
 description: 'Provides throttled queue processing consumption.'
 core: '8.x'
-project: 'queue_throttle'
 configure: queue_throttle.queue_settings

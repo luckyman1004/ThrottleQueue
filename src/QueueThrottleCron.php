@@ -8,8 +8,6 @@ use Drupal\Core\Queue\QueueWorkerManagerInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\Queue\QueueFactory;
-use Drupal\Core\Queue\RequeueException;
-use Drupal\Core\Queue\SuspendQueueException;
 use Drupal\Core\Session\AccountSwitcherInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Component\Datetime\TimeInterface;
