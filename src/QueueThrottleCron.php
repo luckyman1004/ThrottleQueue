@@ -11,6 +11,7 @@ use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Session\AccountSwitcherInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Environment;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -139,7 +140,7 @@ class QueueThrottleCron implements CronInterface {
     $this->accountSwitcher->switchTo(new AnonymousUserSession());
 
     // Try to allocate enough time to run all the hook_cron implementations.
-    drupal_set_time_limit(240);
+    Environment::setTimeLimit(240);
 
     $return = FALSE;
 
