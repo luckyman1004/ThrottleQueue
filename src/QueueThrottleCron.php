@@ -11,7 +11,7 @@ use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Session\AccountSwitcherInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Component\Datetime\TimeInterface;
-use Drupal\Core\Environment;
+use Drupal\Component\Utility\Environment;
 use Psr\Log\LoggerInterface;
 
 /**
