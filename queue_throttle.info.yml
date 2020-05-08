@@ -3,3 +3,4 @@ type: module
 description: 'Provides throttled queue processing consumption.'
 core: '8.x'
 configure: queue_throttle.queue_settings
+core_version_requirement: ^8 || ^9
